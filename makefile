@@ -1,5 +1,5 @@
 BINARY=sar.so
-STEAM=/home/nekz/.steam/steam/steamapps/common/
+STEAM=/mnt/shdd/joel/SteamLibrary/steamapps/common/
 SDIR=src/
 ODIR=obj/
 
@@ -19,7 +19,7 @@ SRCS+=$(wildcard $(SDIR)Modules/*.cpp)
 SRCS+=$(wildcard $(SDIR)Utils/*.cpp)
 OBJS=$(patsubst $(SDIR)%.cpp, $(ODIR)%.o, $(SRCS))
 
-CC=g++
+CC=g++-5
 STFU=-Wno-unused-function -Wno-unused-variable -Wno-parentheses -Wno-unknown-pragmas
 CFLAGS=-std=c++17 -m32 -fPIC -static-libstdc++ -shared -Wall -s $(STFU) -I$(SDIR)
 #CFLAGS+=-D _DEBUG
@@ -63,10 +63,10 @@ post:
 #	@$(EXPORT) "$(BINARY)" "$(STEAM)The Stanley Parable/$(BINARY)"
 #	@$(EXPORT) "$(BINARY)" "$(STEAM)The Beginners Guide/$(BINARY)"
 #	@$(EXPORT) "$(BINARY)" "$(STEAM)Half-Life 2/$(BINARY)"
-#	@$(EXPORT) "$(BINARY)" "$(STEAM)Portal/$(BINARY)"
+	@$(EXPORT) "$(BINARY)" "$(STEAM)Portal/bin/$(BINARY)"
 
 get-deps:
-	sudo apt-get install -y g++-multilib
+	sudo apt-get install -y g++-5-multilib
 
 cvars:
 	node cvars.js "$(STEAM)Portal 2"
