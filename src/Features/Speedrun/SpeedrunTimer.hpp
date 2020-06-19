@@ -46,9 +46,11 @@ public:
 
     bool IsActive();
 
+    bool IsPaused();
+
     void Start(const int* engineTicks);
     void Pause();
-    void Resume(const int* engineTicks);
+    void Resume(const int* engineTicks, bool send);
     void PreUpdate(const int* engineTicks, const char* engineMap);
     void PostUpdate(const int* engineTicks, const char* engineMap);
     void CheckRules(const int* engineTicks);
