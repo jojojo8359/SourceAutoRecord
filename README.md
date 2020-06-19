@@ -2,7 +2,7 @@
 
 ## Features
 
-- Automatic splitting for [Llanfair](https://github.com/jojojo8359/Llanfair) speedrun timer
+- (basic) Automatic splitting for [Llanfair](https://github.com/jojojo8359/Llanfair) speedrun timer
 - Automatic demo recording
 - Accurate session timing
 - Speedrun timer with predefined rule system
