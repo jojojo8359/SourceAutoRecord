@@ -17,6 +17,8 @@
 
 #include "Utils/SDK.hpp"
 
+#include "Features/Speedrun/Llanfair.hpp"
+
 Session* session;
 
 Session::Session()
@@ -46,7 +48,7 @@ void Session::Started(bool menu)
         if (sar_speedrun_autostop.isRegistered && sar_speedrun_autostop.GetBool()) {
             speedrun->Stop(false);
         } else {
-            speedrun->Resume(engine->tickcount);
+            speedrun->Resume(engine->tickcount, false);
         }
 
         this->isRunning = true;
@@ -63,7 +65,7 @@ void Session::Start()
 
     this->Rebase(*engine->tickcount);
     timer->Rebase(*engine->tickcount);
-    speedrun->Resume(engine->tickcount);
+    speedrun->Resume(engine->tickcount, true);
 
     if (rebinder->isSaveBinding || rebinder->isReloadBinding) {
         if (engine->demorecorder->isRecordingDemo) {
@@ -161,7 +163,9 @@ void Session::Ended()
     replayRecorder2->StopRecording();
     replayPlayer1->StopPlaying();
     replayPlayer2->StopPlaying();
+    llanfair->SendMsg(3, speedrun->GetTotal(), speedrun->GetIntervalPerTick());
     speedrun->Pause();
+    console->Print("(Session) split & paused\n");
     speedrun->UnloadRules();
 
     if (listener) {

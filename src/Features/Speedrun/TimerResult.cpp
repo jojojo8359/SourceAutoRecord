@@ -6,6 +6,9 @@
 
 #include "Modules/Console.hpp"
 
+#include "SpeedrunTimer.hpp"
+#include "Llanfair.hpp"
+
 TimerResult::TimerResult()
     : total(0)
     , curSplit(nullptr)
@@ -26,8 +29,13 @@ void TimerResult::EndSplit(const int finished)
 }
 void TimerResult::Split(const int ticks, const char* map)
 {
+    // console->Print("Old split started at %i ticks\n", this->curSplit->GetTotal());
     this->EndSplit(ticks);
+    // llanfair->SendMsg(3, ticks, speedrun->GetIntervalPerTick());
+    console->Print("(TimerResult) Split at %i ticks\n", ticks);
+    // console->Print("Interval per tick = %f\n", speedrun->GetIntervalPerTick());
     this->NewSplit(ticks, map);
+    // console->Print("Old split total: %i\n", this->prevSplit->GetTotal());
 }
 void TimerResult::AddSegment(int ticks)
 {

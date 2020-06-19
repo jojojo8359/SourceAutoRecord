@@ -22,6 +22,8 @@
 #include "Utils.hpp"
 #include "Variable.hpp"
 
+#include "Features/Speedrun/Llanfair.hpp"
+
 Variable sv_cheats;
 Variable sv_footsteps;
 Variable sv_alternateticks;
@@ -272,8 +274,12 @@ DETOUR(Server::GameFrame, bool simulating)
     if (!server->IsRestoring()) {
         if (!simulating && !pauseTimer->IsActive()) {
             pauseTimer->Start();
-        } else if (simulating && pauseTimer->IsActive()) {
+            llanfair->SendMsg(6);
+            console->Print("(Server) Speedrun paused!\n");
+        } else if (simulating && pauseTimer->IsActive()) { // send resume signal on split
             pauseTimer->Stop();
+            llanfair->SendMsg(7);
+            console->Print("(Server) Speedrun resumed!\n");
             console->DevMsg("Paused for %i non-simulated ticks.\n", pauseTimer->GetTotal());
         }
     }

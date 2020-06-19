@@ -1,7 +1,8 @@
-# SourceAutoRecord v1.10-ll
+# SourceAutoRecord v1.10-ll (Llanfair version)
 
 ## Features
 
+- (basic) Automatic splitting for [Llanfair](https://github.com/jojojo8359/Llanfair) speedrun timer
 - Automatic demo recording
 - Accurate session timing
 - Speedrun timer with predefined rule system

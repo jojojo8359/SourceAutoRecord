@@ -8,6 +8,10 @@
 #include <string>
 #include <vector>
 
+#include <chrono>
+
+#include "Llanfair.hpp"
+
 #include "TimerCategory.hpp"
 #include "TimerInterface.hpp"
 #include "TimerResult.hpp"
@@ -27,7 +31,7 @@ Variable sar_speedrun_autostop("sar_speedrun_autostop", "0",
     "Stops speedrun timer automatically when going into the menu.\n");
 Variable sar_speedrun_standard("sar_speedrun_standard", "1",
     "Timer automatically starts, splits and stops.\n");
-Variable sar_speedrun_time_pauses("sar_speedrun_time_pauses", "1",
+Variable sar_speedrun_time_pauses("sar_speedrun_time_pauses", "0",
     "Timer automatically adds non-simulated ticks when server pauses.\n");
 Variable sar_speedrun_smartsplit("sar_speedrun_smartsplit", "1",
     "Timer interface only splits once per level change.\n");
@@ -59,40 +63,51 @@ bool SpeedrunTimer::IsActive()
     return this->state == TimerState::Running
         || this->state == TimerState::Paused;
 }
+bool SpeedrunTimer::IsPaused()
+{
+    return this->state == TimerState::Paused;
+}
 void SpeedrunTimer::Start(const int* engineTicks)
 {
     this->StatusReport("Speedrun started!\n");
+    console->Print("Current map: %s", this->map);
     this->base = *engineTicks;
 
     if (this->IsActive()) {
         this->pubInterface.get()->SetAction(TimerAction::Restart);
+        llanfair->SendMsg(2);
     } else {
         this->pubInterface.get()->SetAction(TimerAction::Start);
+        llanfair->SendMsg(1);
     }
 
     this->total = this->prevTotal = this->offset;
     this->pause = 0;
     this->state = TimerState::Running;
     this->visitedMaps.clear();
-    this->visitedMaps.push_back(this->map);
+    this->visitedMaps.push_back(this->map); // this->map
 
     this->result.get()->Reset();
     this->result.get()->NewSplit(this->total, this->GetCurrentMap());
 }
-void SpeedrunTimer::Pause()
+void SpeedrunTimer::Pause() // send pause signal on split
 {
     if (this->state == TimerState::Running) {
-        this->StatusReport("Speedrun paused!\n");
+        this->StatusReport("(SpeedrunTimer) Speedrun paused!\n");
         this->pubInterface.get()->SetAction(TimerAction::Pause);
+        llanfair->SendMsg(6, speedrun->GetTotal(), speedrun->GetIntervalPerTick());
         this->state = TimerState::Paused;
         this->prevTotal = this->total;
         this->result.get()->AddSegment(this->session + this->pause);
     }
 }
-void SpeedrunTimer::Resume(const int* engineTicks)
+void SpeedrunTimer::Resume(const int* engineTicks, bool send)
 {
     if (this->state == TimerState::Paused) {
-        this->StatusReport("Speedrun resumed!\n");
+        if(send) {
+            llanfair->SendMsg(7, speedrun->GetTotal(), speedrun->GetIntervalPerTick());
+        }
+        this->StatusReport("(SpeedrunTimer) Speedrun resumed!\n");
         this->pubInterface.get()->SetAction(TimerAction::Resume);
         this->state = TimerState::Running;
         this->base = *engineTicks;
@@ -104,6 +119,11 @@ void SpeedrunTimer::PreUpdate(const int* engineTicks, const char* engineMap)
     if (this->state != TimerState::Running) {
         if (std::strncmp(this->map, engineMap, sizeof(this->map))) {
             std::strncpy(this->map, engineMap, sizeof(this->map));
+
+            // console->Print("Current map: %s\nVisited maps (%d):\n", this->map, this->visitedMaps.size());
+            // for (auto& map : this->visitedMaps) {
+            //     console->Print("%s\n", map);
+            // }
 
             auto visited = false;
             if (this->state == TimerState::Paused && sar_speedrun_smartsplit.GetBool() && std::strlen(this->map) != 0) {
@@ -172,6 +192,7 @@ void SpeedrunTimer::Stop(bool addSegment)
     if (this->IsActive()) {
         this->StatusReport("Speedrun stopped!\n");
         this->pubInterface.get()->SetAction(TimerAction::End);
+        llanfair->SendMsg(4);
         this->state = TimerState::NotRunning;
         if (addSegment) {
             this->result.get()->AddSegment(this->session + this->pause);
@@ -181,6 +202,7 @@ void SpeedrunTimer::Stop(bool addSegment)
     } else {
         console->Print("Ready for new speedun!\n");
         this->pubInterface.get()->SetAction(TimerAction::Reset);
+        llanfair->SendMsg(5);
         this->Reset();
     }
 }
@@ -198,9 +220,12 @@ void SpeedrunTimer::Split(bool visited)
     if (this->IsActive()) {
         this->StatusReport("Speedrun split!\n");
         this->result.get()->Split(this->total, this->GetCurrentMap());
+        // console->Print("%i\n", this->result.get()->prevSplit->finished);
+        console->Print("(SpeedrunTimer) Splitting; visited: %d on tick %i\n", visited, this->total);
         this->pb.get()->UpdateSplit(this->GetCurrentMap());
         if (!visited) {
             this->pubInterface.get()->SetAction(TimerAction::Split);
+            // llanfair->SendMsg(3);
         }
     }
 }
@@ -474,6 +499,16 @@ CON_COMMAND(sar_speedrun_start, "Starts speedrun timer manually.\n")
 {
     speedrun->Start(engine->tickcount);
 }
+CON_COMMAND(ticks, "Get current speedrun ticks.\n")
+{
+    if(speedrun->IsActive()) {
+        console->Print("Current split ticks: %i\n", speedrun->GetResult()->curSplit->GetTotal());
+        console->Print("Current speedrun ticks (total): %i\n", speedrun->GetTotal());
+    }
+    else {
+        console->Print("Speedrun not active\n");
+    }
+}
 CON_COMMAND(sar_speedrun_stop, "Stops speedrun timer manually.\n")
 {
     speedrun->Stop();
@@ -488,7 +523,7 @@ CON_COMMAND(sar_speedrun_pause, "Pauses speedrun timer manually.\n")
 }
 CON_COMMAND(sar_speedrun_resume, "Resumes speedrun timer manually.\n")
 {
-    speedrun->Resume(engine->tickcount);
+    speedrun->Resume(engine->tickcount, true);
 }
 CON_COMMAND(sar_speedrun_reset, "Resets speedrun timer.\n")
 {
